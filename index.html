@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Filter Angka Togel - KSWEB</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #eee; padding: 20px; }
+        .card { max-width: 600px; background: #2d2d2d; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin: auto; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #444; background: #111; color: #0f0; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #e67e22; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #d35400; }
+        .box { margin-top: 20px; padding: 15px; border-radius: 6px; font-size: 14px; line-height: 1.8; }
+        .dead { background: #3d1a1a; border-left: 5px solid #ff4d4d; }
+        .live { background: #1a3d1a; border-left: 5px solid #2ecc71; }
+        h2 { color: #e67e22; text-align: center; }
+        .highlight { color: #f1c40f; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🎯 Filter Bola Mati</h2>
+    <form method="POST">
+        <label>Input Result Terakhir (4 Digit):</label>
+        <input type="number" name="last_result" placeholder="Contoh: 4321" required value="<?= $_POST['last_result'] ?? '' ?>">
+        <button type="submit">ANALISIS SEKARANG</button>
+    </form>
+
+    <?php
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        $res = $_POST['last_result'];
+        
+        if(strlen($res) == 4) {
+            // Logika 1: Angka Mati dari Mistik Lama
+            // 1->6, 2->5, 3->8, 4->7, 0->9
+            $mistik_lama = ['1'=>'6', '2'=>'5', '3'=>'8', '4'=>'7', '0'=>'9', '6'=>'1', '5'=>'2', '8'=>'3', '7'=>'4', '9'=>'0'];
+            
+            // Logika 2: Ambil EKOR dan cari lawan mistiknya
+            $ekor = substr($res, -1);
+            $ekor_mati = $mistik_lama[$ekor];
+
+            // Logika 3: Jumlah 2D (Contoh 21 -> 2+1 = 3)
+            $dua_d = substr($res, -2);
+            $jumlah_2d = array_sum(str_split($dua_d));
+            if($jumlah_2d > 9) $jumlah_2d = array_sum(str_split((string)$jumlah_2d));
+
+            $pangkas = [];
+            $aman = [];
+
+            for ($i = 0; $i <= 99; $i++) {
+                $n = sprintf("%02d", $i);
+                
+                // FILTER: Angka dianggap mati jika:
+                // - Mengandung angka mistik dari ekor terakhir
+                // - Jumlah digitnya sama dengan jumlah 2D terakhir
+                // - Sama dengan 2D yang baru keluar
+                $jml_n = array_sum(str_split($n));
+                if($jml_n > 9) $jml_n = array_sum(str_split((string)$jml_n));
+
+                if (strpos($n, $ekor_mati) !== false || $jml_n == $jumlah_2d || $n == $dua_d) {
+                    $pangkas[] = $n;
+                } else {
+                    $aman[] = $n;
+                }
+            }
+
+            echo "<div class='box dead'>";
+            echo "<b>Angka Pangkas (Probabilitas Keluar Kecil):</b><br>";
+            echo implode(", ", $pangkas);
+            echo "</div>";
+
+            echo "<div class='box live'>";
+            echo "<b>Angka Kuat (Tersisa <span class='highlight'>".count($aman)."</span> Line):</b><br>";
+            echo implode(", ", $aman);
+            echo "</div>";
+        } else {
+            echo "<p style='color:red'>Harap masukkan 4 digit angka!</p>";
+        }
+    }
+    ?>
+</div>
+
+</body>
+</html>
