@@ -10,76 +10,87 @@
         input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #444; background: #111; color: #0f0; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; padding: 12px; background: #e67e22; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
         button:hover { background: #d35400; }
-        .box { margin-top: 20px; padding: 15px; border-radius: 6px; font-size: 14px; line-height: 1.8; }
+        .box { margin-top: 20px; padding: 15px; border-radius: 6px; font-size: 14px; line-height: 1.8; display: none; }
         .dead { background: #3d1a1a; border-left: 5px solid #ff4d4d; }
         .live { background: #1a3d1a; border-left: 5px solid #2ecc71; }
         h2 { color: #e67e22; text-align: center; }
         .highlight { color: #f1c40f; font-weight: bold; }
+        #error-msg { color: red; display: none; margin-top: 10px; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h2>🎯 Filter Bola Mati</h2>
-    <form method="POST">
+    <form id="filterForm" onsubmit="event.preventDefault(); analisisAngka();">
         <label>Input Result Terakhir (4 Digit):</label>
-        <input type="number" name="last_result" placeholder="Contoh: 4321" required value="<?= $_POST['last_result'] ?? '' ?>">
+        <input type="number" id="last_result" placeholder="Contoh: 4321" required>
         <button type="submit">ANALISIS SEKARANG</button>
     </form>
 
-    <?php
-    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-        $res = $_POST['last_result'];
+    <p id="error-msg">Harap masukkan 4 digit angka!</p>
+
+    <div id="boxDead" class="box dead"></div>
+    <div id="boxLive" class="box live"></div>
+</div>
+
+<script>
+function analisisAngka() {
+    const res = document.getElementById('last_result').value;
+    const errorMsg = document.getElementById('error-msg');
+    const boxDead = document.getElementById('boxDead');
+    const boxLive = document.getElementById('boxLive');
+
+    // Sembunyikan hasil sebelumnya
+    errorMsg.style.display = 'none';
+    boxDead.style.display = 'none';
+    boxLive.style.display = 'none';
+
+    if(res.length !== 4) {
+        errorMsg.style.display = 'block';
+        return;
+    }
+
+    // Logika 1: Mistik Lama
+    const mistik_lama = {'1':'6', '2':'5', '3':'8', '4':'7', '0':'9', '6':'1', '5':'2', '8':'3', '7':'4', '9':'0'};
+    
+    // Logika 2: Ekor Mati
+    const ekor = res.slice(-1);
+    const ekor_mati = mistik_lama[ekor];
+
+    // Logika 3: Jumlah 2D
+    const dua_d = res.slice(-2);
+    let jumlah_2d = dua_d.split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);
+    if(jumlah_2d > 9) {
+        jumlah_2d = jumlah_2d.toString().split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);
+    }
+
+    let pangkas = [];
+    let aman = [];
+
+    for (let i = 0; i <= 99; i++) {
+        let n = i.toString().padStart(2, '0');
         
-        if(strlen($res) == 4) {
-            // Logika 1: Angka Mati dari Mistik Lama
-            // 1->6, 2->5, 3->8, 4->7, 0->9
-            $mistik_lama = ['1'=>'6', '2'=>'5', '3'=>'8', '4'=>'7', '0'=>'9', '6'=>'1', '5'=>'2', '8'=>'3', '7'=>'4', '9'=>'0'];
-            
-            // Logika 2: Ambil EKOR dan cari lawan mistiknya
-            $ekor = substr($res, -1);
-            $ekor_mati = $mistik_lama[$ekor];
+        let jml_n = n.split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);
+        if(jml_n > 9) {
+            jml_n = jml_n.toString().split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);
+        }
 
-            // Logika 3: Jumlah 2D (Contoh 21 -> 2+1 = 3)
-            $dua_d = substr($res, -2);
-            $jumlah_2d = array_sum(str_split($dua_d));
-            if($jumlah_2d > 9) $jumlah_2d = array_sum(str_split((string)$jumlah_2d));
-
-            $pangkas = [];
-            $aman = [];
-
-            for ($i = 0; $i <= 99; $i++) {
-                $n = sprintf("%02d", $i);
-                
-                // FILTER: Angka dianggap mati jika:
-                // - Mengandung angka mistik dari ekor terakhir
-                // - Jumlah digitnya sama dengan jumlah 2D terakhir
-                // - Sama dengan 2D yang baru keluar
-                $jml_n = array_sum(str_split($n));
-                if($jml_n > 9) $jml_n = array_sum(str_split((string)$jml_n));
-
-                if (strpos($n, $ekor_mati) !== false || $jml_n == $jumlah_2d || $n == $dua_d) {
-                    $pangkas[] = $n;
-                } else {
-                    $aman[] = $n;
-                }
-            }
-
-            echo "<div class='box dead'>";
-            echo "<b>Angka Pangkas (Probabilitas Keluar Kecil):</b><br>";
-            echo implode(", ", $pangkas);
-            echo "</div>";
-
-            echo "<div class='box live'>";
-            echo "<b>Angka Kuat (Tersisa <span class='highlight'>".count($aman)."</span> Line):</b><br>";
-            echo implode(", ", $aman);
-            echo "</div>";
+        if (n.includes(ekor_mati) || jml_n === jumlah_2d || n === dua_d) {
+            pangkas.push(n);
         } else {
-            echo "<p style='color:red'>Harap masukkan 4 digit angka!</p>";
+            aman.push(n);
         }
     }
-    ?>
-</div>
+
+    // Tampilkan Hasil
+    boxDead.innerHTML = `<b>Angka Pangkas (Probabilitas Keluar Kecil):</b><br>${pangkas.join(', ')}`;
+    boxLive.innerHTML = `<b>Angka Kuat (Tersisa <span class='highlight'>${aman.length}</span> Line):</b><br>${aman.join(', ')}`;
+    
+    boxDead.style.display = 'block';
+    boxLive.style.display = 'block';
+}
+</script>
 
 </body>
 </html>
